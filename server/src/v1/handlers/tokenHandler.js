@@ -1,0 +1,34 @@
+const jsonwebtoken = require("jsonwebtoken");
+const User = require("../models/user");
+
+const tokenDecode = (req) => {
+  const bearedHeader = req.headers["authorization"];
+  console.log(bearedHeader);
+  if (bearedHeader) {
+    const bearer = bearedHeader.split(" ")[1];
+    try {
+      const tokenDecoded = jsonwebtoken.verify(
+        bearer,
+        process.env.TOKEN_SECRET_KEY
+      );
+      return tokenDecoded;
+    } catch {
+      return false;
+    }
+  } else {
+    return false;
+  }
+};
+
+exports.verifyToken = async (req, res, next) => {
+  const tokenDecoded = tokenDecode(req);
+  if (tokenDecoded) {
+    const user = await User.findById(tokenDecoded.id);
+
+    if (!user) return res.status(401).json("Unauthorized");
+    req.user = user;
+    next();
+  } else {
+    res.status(401).json("Unauthorized");
+  }
+};
